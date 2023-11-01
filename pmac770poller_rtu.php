@@ -2,13 +2,13 @@
 <?php
 $debug = 1;
 $filename1 = "/tmp/ACTsdm630.txt";
-$moxa_ip = "192.168.100.121"; // IP of the rs485/ip converter
+$moxa_ip = "192.168.100.121"; // IP of the rs485/ip converter configured in Modbus RTU mode
 $moxa_port = 502;
 $moxa_timeout = 10;
 $pause = 1000;
-openlog('SDM630POLLER', LOG_CONS | LOG_NDELAY | LOG_PID, LOG_USER | LOG_PERROR); //Reduce errors
+openlog('PMAC770POLLER', LOG_CONS | LOG_NDELAY | LOG_PID, LOG_USER | LOG_PERROR); //Reduce errors
 error_reporting(E_ALL ^ E_WARNING);
-syslog(LOG_ALERT,"SDM630POLLER Neustart");
+syslog(LOG_ALERT,"PMAC770POLLER Neustart");
 
 shmop_delete(0x6301);
 // Create Shared Memory objects for data output
@@ -26,35 +26,33 @@ if (!$fp)
 //MAIN loop
 while(1)
 {
-    //send query to PMAC770 ID:1
-    //                ID      READ                                    ADDR      CRChi     CRClo
-    fwrite($fp, chr(0x00).chr(0x00).chr(0x00).chr(0x00).chr(0x00).chr(0x06).chr(0x01).chr(0x03).chr(0x00).chr(0x00).chr(0x00).chr(0x24).chr(0x47).chr(0xc8));
-        usleep(500); // $byte = fgets($fp,157);
+        //send query to PMAC770 ID:1
+        //            ID      READ HOlding Registers                   ADDR      CRChi     CRClo
+        fwrite($fp, chr(0x01).chr(0x03).chr(0x00).chr(0x00).chr(0x00).chr(0x24).chr(0x45).chr(0xd1));
+        usleep(500); // $byte = fgets($fp,81);
         $byte = fread($fp,81);
-        $wattl1_1 = round(hexToSignedDecimal(bin2hex(substr($byte,61,2)))*(0.1*20));
-        $wattl2_1 = round(hexToSignedDecimal(bin2hex(substr($byte,63,2)))*(0.1*20));
-        $wattl3_1 = round(hexToSignedDecimal(bin2hex(substr($byte,65,2)))*(0.1*20));
-        $totalwatt_1 = round(calc4bytes(hexToSignedDecimal(bin2hex(substr($byte,69,2))),hexToSignedDecimal(bin2hex(substr($byte,67,2)))));
-        //$imported_1 = hex2ieee754(ascii2hex(substr($byte,147,4)));
-        //$exported_1 = hex2ieee754(ascii2hex(substr($byte,151,4)));
+        $wattl1_1 = round(hexToSignedDecimal(bin2hex(substr($byte,55,2)))*(0.1*20));
+        $wattl2_1 = round(hexToSignedDecimal(bin2hex(substr($byte,57,2)))*(0.1*20));
+        $wattl3_1 = round(hexToSignedDecimal(bin2hex(substr($byte,59,2)))*(0.1*20));
+        $totalwatt_1 = round(hexToSignedDecimal(bin2hex(substr($byte,61,2)))*(0.1*20));
 
         if($debug){
           echo "1_HEX:".ascii2hex($byte)."\n";
-          //echo "1_L1_VOLT: ".ascii2hex(substr($byte,9,2))." V\n";
-	  echo "1_L1_VOLT: ".HexToUnsignedDecimal(bin2hex(substr($byte,9,2)))*0.01." V\n";  
+          //echo "1_L1_VOLT: ".ascii2hex(substr($byte,3,2))." V\n";
+	  echo "1_L1_VOLT: ".HexToUnsignedDecimal(bin2hex(substr($byte,3,2)))*0.01." V\n";  
           //echo "1_L2_VOLT: ".ascii2hex(substr($byte,11,2))." V\n";        
-	  echo "1_L2_VOLT: ".HexToUnsignedDecimal(bin2hex(substr($byte,11,2)))*0.01." V\n";
-          echo "1_L3_VOLT: ".HexToUnsignedDecimal(bin2hex(substr($byte,13,2)))*0.01." V\n";
-	  echo "1_L1_AMPS: ".HexToUnsignedDecimal(bin2hex(substr($byte,35,2)))*(0.001*2)." A\n";
+	  echo "1_L2_VOLT: ".HexToUnsignedDecimal(bin2hex(substr($byte,5,2)))*0.01." V\n";
+          echo "1_L3_VOLT: ".HexToUnsignedDecimal(bin2hex(substr($byte,6,2)))*0.01." V\n";
+	  echo "1_L1_AMPS: ".HexToUnsignedDecimal(bin2hex(substr($byte,29,2)))*(0.001*2)." A\n";
           //echo "1_L1_AMPS: ".ascii2hex(substr($byte,35,2))." A\n";
-          echo "1_L2_AMPS: ".HexToUnsignedDecimal(bin2hex(substr($byte,37,2)))*(0.001*2)." A\n";
-	  echo "1_L3_AMPS: ".HexToUnsignedDecimal(bin2hex(substr($byte,39,2)))*(0.001*2)." A\n";
-          echo "1_N_AMPS: ".HexToUnsignedDecimal(bin2hex(substr($byte,41,2)))*(0.001*2)." A\n";
-          echo "1_L1_WATT: ".hexToSignedDecimal(bin2hex(substr($byte,61,2)))*(0.1*20)." W\n";
-          echo "1_L2_WATT: ".hexToSignedDecimal(bin2hex(substr($byte,63,2)))*(0.1*20)." W\n";
-          echo "1_L3_WATT: ".hexToSignedDecimal(bin2hex(substr($byte,65,2)))*(0.1*20)." W\n";
-          //echo "TOTAL_WATT: ".hexToSignedDecimal(bin2hex(substr($byte,69,2)))*(65536)+hexToSignedDecimal(bin2hex(substr($byte,67,2)))*(0.1*20)." W\n";
-          echo "TOTAL_WATT: ".calc4bytes(hexToSignedDecimal(bin2hex(substr($byte,69,2))),hexToSignedDecimal(bin2hex(substr($byte,67,2))))." W\n";
+          echo "1_L2_AMPS: ".HexToUnsignedDecimal(bin2hex(substr($byte,31,2)))*(0.001*2)." A\n";
+	  echo "1_L3_AMPS: ".HexToUnsignedDecimal(bin2hex(substr($byte,33,2)))*(0.001*2)." A\n";
+          echo "1_N_AMPS: ".HexToUnsignedDecimal(bin2hex(substr($byte,35,2)))*(0.001*2)." A\n";
+          echo "1_L1_WATT: ".hexToSignedDecimal(bin2hex(substr($byte,55,2)))*(0.1*20)." W\n";
+          echo "1_L2_WATT: ".hexToSignedDecimal(bin2hex(substr($byte,57,2)))*(0.1*20)." W\n";
+          echo "1_L3_WATT: ".hexToSignedDecimal(bin2hex(substr($byte,59,2)))*(0.1*20)." W\n";
+          echo "TOTAL_WATT: ".hexToSignedDecimal(bin2hex(substr($byte,61,2)))*(0.1*20)." W\n";
+          //echo "TOTAL_WATT: ".calc4bytes(hexToSignedDecimal(bin2hex(substr($byte,69,2))),hexToSignedDecimal(bin2hex(substr($byte,67,2))))." W\n";
           //echo "1_P_TOTAL: ".hex2ieee754(bin2hex(substr($byte,67,4)))*(0.1*20)." W\n";
           //echo "1_FREQUEN: ".hex2ieee754(ascii2hex(substr($byte,143,4)))." Hz\n";
           //echo "1_P_TOTAL: ".hex2ieee754(ascii2hex(substr($byte,107,4)))." W\n";
